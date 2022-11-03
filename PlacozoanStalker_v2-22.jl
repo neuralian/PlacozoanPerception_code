@@ -49,7 +49,9 @@ posteriorDeathRate = .0005
 N_REPS = 32
 
 # show animation while simulating true/false
-# (must be true if )
+# must be true if animation is to be recorded/saved.
+#  in which case need to uncomment the line starting: record(scene
+#  which was line 495 when this comment was written.
 SHOW_ANIMATION = true
 
 # log parameters and simulation statistics per trial true/false 
@@ -489,8 +491,8 @@ for rep = 1:N_REPS
     # comment out ONE of the following 2 lines to generate video file or not
     # NB animation can be displayed while simulating, by setting SHOW_ANIMATION = true, without saving as video file,
     # SHOW_ANIMATION must be true for video to be recorded.
-    #record(scene, videoFileName , framerate=30, compression = 0, 1:nFrames) do i     # simulate and write video file
-    for i in 1:nFrames                                         # simulate without writing video file
+    record(scene, videoFileName , framerate=30, 1:nFrames) do i     # simulate and write video file
+    #for i in 1:nFrames                                         # simulate without writing video file
 
 
         # predator takes a stochastic step toward prey
@@ -620,7 +622,7 @@ for rep = 1:N_REPS
         println()
         laptimer()
 
-        t = 1
+      #  t = 1
 
     end # for rep
 
