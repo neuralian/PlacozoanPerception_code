@@ -37,16 +37,16 @@ using Dates
 include("BayesianPlacozoan_v2-22.jl")
 
 # wrap the script in a function so it compiles to (more) specialized (faster) code
-function placozoanStalker()
+#function placozoanStalker()
 
 
 # SIMULATION parameters
-n_likelihood_particles =  6400
-n_posterior_particles = 12800
-posteriorDeathRate = .0005
+n_likelihood_particles =  800 #1600 #6400
+n_posterior_particles = 1600 # 3200 # 12800
+posteriorDeathRate = .001
 
 # number of replicate simulations for each combination of the above parameters
-N_REPS = 32
+N_REPS = 4
 
 # show animation while simulating true/false
 # must be true if animation is to be recorded/saved.
@@ -77,12 +77,13 @@ end
 
 
 # simulation parameters
-nFrames = 480    # number of animation frames
+nFrames = 600    # number of animation frames
 burn_time = 30      # burn in posterior initially for 30 sec with predator outside observable world
-mat_radius = 400
+mat_radius = 400    # μm
 min_Δ = 5.0         # predator closest approach distance
-Δinit = 175.0
+Δinit = 200.0
 dt = 1.00
+
 
 # # prey 
 # priorDensity = 0.002
@@ -98,7 +99,7 @@ Nreceptors = 32
 Ncrystals = 32
 prey_fieldrange = 0   # no field
 prey_spinrate =   0.0005π  # prey turns slowly clockwise
-particle_collisionRadius = 1.5 # when particles are this close to each other they are deemed to have collided
+particle_collisionRadius = 12.5 # when particles are this close to each other they are deemed to have collided
 posterior_diffusion_coefficient = 4.0
 
 
@@ -117,11 +118,20 @@ mcell_inset = 2.0*mcell_radius  # inset of M-cell centre from edge of animal
 
 # construct scene
 WorldSize = 2 * mat_radius + 1
-mask = zeros(WorldSize, WorldSize)  # mat mask
+mask = ones(WorldSize, WorldSize)  # mat mask
 for i in 1:WorldSize
     for j in 1:WorldSize
-        if ((i - mat_radius - 1)^2 + (j - mat_radius - 1)^2) <= mat_radius^2
-            mask[i,j] = 1.0
+        if ((i - mat_radius - 1)^2 + (j - mat_radius - 1)^2) > prey_radius^2
+            mask[i,j] = NaN
+        end
+    end
+end
+
+outmask = ones(WorldSize, WorldSize) 
+for i in 1:WorldSize
+    for j in 1:WorldSize
+        if ((i - mat_radius - 1)^2 + (j - mat_radius - 1)^2) < mat_radius^2
+            outmask[i,j] = 0.0
         end
     end
 end
@@ -238,6 +248,7 @@ tick()
 
 for rep = 1:N_REPS
 
+
     # print trial parameters in terminal
     println("Replicate = ",  rep, 
             ", Likelihood particles = ", n_likelihood_particles, 
@@ -264,9 +275,8 @@ for rep = 1:N_REPS
     global
     predator = Placozoan(predator_radius, predator_margin, predator_fieldrange,
                             predator_initial_position, predator_speed, predator_brownian,
-                            RGBA(.25, 0.1, 0.1, .35),
-                            RGBA(.45, 0.1, 0.1, 0.2),
-                            RGB(.95, 0.1, 0.1) )
+                            pd_gutcolor, pd_margincolor, pd_edgecolor)
+
 
     placozoanFieldstrength!(predator)
     Ereceptor_RF(prey, predator)
@@ -293,7 +303,7 @@ for rep = 1:N_REPS
     # initialize particle filter
     #     initialize_particles(prey) # draw initial sample from prior
 
-    if SHOW_ANIMATION
+   if SHOW_ANIMATION
 
         # if !PLOT_ARRAYS    # not plotting likelihoods or posterior
         #     scene, layout = layoutscene(resolution=(WorldSize, WorldSize))
@@ -303,11 +313,10 @@ for rep = 1:N_REPS
         #     hidespines!(left_panel)
         #     hidedecorations!(left_panel)
         # else
-        scene = Figure(resolution = ( Int(cround(3 * .75 * WorldSize)), Int(cround(.75 * WorldSize + 40)) ), backgroundcolor = :black)
-        left_panel = scene[1,1] = Axis(scene, title="2D Reaction-Diffusion (Placozoan Model)",
-            titlecolor = title_color, backgroundcolor=:black )
-        middle_panel = scene[1, 2] = Axis(scene, title="Bayesian Observer", titlecolor = title_color, backgroundcolor=colour_background)
-        right_panel = scene[1, 3] = Axis(scene, title="Likelihood", titlecolor = title_color, backgroundcolor=colour_background)
+        scene = Figure(resolution = ( Int(cround(2 * .75 * WorldSize)), Int(cround(.75 * WorldSize + 40)) ), fontsize = 16, backgroundcolor = colour_background)
+        left_panel = scene[1,1] = Axis(scene, title="Placozoan",   titlecolor = title_color, backgroundcolor=:white )
+        middle_panel = scene[1, 2] = Axis(scene, title="Bayesian",  titlecolor = title_color, backgroundcolor=:white)
+        # right_panel = scene[1, 3] = Axis(scene, title="Likelihood", titlecolor = title_color, backgroundcolor=colour_background)
 
 
 
@@ -322,148 +331,128 @@ for rep = 1:N_REPS
         hidedecorations!(left_panel)
         hidespines!(middle_panel)
         hidedecorations!(middle_panel)
-        hidespines!(right_panel)
-        hidedecorations!(right_panel)
+        # hidespines!(right_panel)
+        # hidedecorations!(right_panel)
     # end
 
 
-        # mat is a dark green disc in left panel (always present)
+        # mat is a  green disc in left panel (always present)
         mat_plt = poly!(left_panel,
-            decompose(Point2f, Circle(Point2f(0., 0.), mat_radius)),
-            color=colour_mat, strokewidth=0, strokecolor=:black)
-        display(scene)
+            decompose(Point2f, Circle(Point2f(0., 0.), mat_radius)), color=colour_mat, strokewidth=0.25, strokecolor=:black)
+
+       # display(scene)
 
         mat_middle_plt = poly!(middle_panel,
             decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), mat_radius)),
-            color=RGBA(0.0, 0.0, 0.0, 0.0),
-            strokewidth=0.5,
-            strokecolor=RGB(0.75, 0.75, 0.75),
+            color=colour_mat,  strokewidth=0.25, strokecolor=RGB(0.75, 0.75, 0.75),
         )
 
-        mat_right_plt = poly!(right_panel,
-            decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), mat_radius)),
-            color=RGBA(0.0, 0.0, 0.0, 0.0),
-            strokewidth=0.5,
-            strokecolor=RGB(0.75, 0.75, 0.75),
-        )
+        # mat_right_plt = poly!(right_panel,
+        #     decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), mat_radius)),
+        #     color=RGBA(0.0, 0.0, 0.0, 0.0),
+        #     strokewidth=0.5,
+        #     strokecolor=RGB(0.75, 0.75, 0.75),
+        # )
 
-        # time and Δ report on plot
-        text!(left_panel, @lift(string("T = ", Int64($t[]))), color = :white, 
-                            position = (40-mat_radius,60-mat_radius), textsize = 16)
-        # text!(left_panel, @lift(string("Δ = ", Int64(round(prey.observer.range[Int64($t[])]-prey.radius-predator.radius)))), color = :white, 
-        #                   position = (40-mat_radius,35-mat_radius), textsize = 16)
-        text!(left_panel, @lift(string("Δ = ", Int64(cround(prey.observer.Δ[Int64($t[])] ) ))), color = :white, 
-                            position = (40-mat_radius,35-mat_radius), textsize = 16)                #prey.observer.range[i]
 
-    # predator drawn using lift(..., node)
-    # (predatorLocation does not depend explicitly on t, but this causes
-    #  the plot to be updated when the node t changes)
+
+    # Draw predator (moveable/updateable on plot)
     predator_plt = poly!(left_panel,
         lift(s -> decompose(Point2f, Circle(Point2f(predator.position[][1], predator.position[][2]),
-            predator.radius)), t),
-        color=predator.color, strokecolor=predator.edgecolor, strokewidth=.5)
+            predator.radius)), t),  color=predator.color, strokecolor=predator.edgecolor, strokewidth=.5)
 
-        # plot likelihood particles (samples from likelihood)
-        Lparticle_plt = scatter!(left_panel,prey.observer.Lparticle[:], 
-            # prey.observer.Lparticle[1:prey.observer.nLparticles[], 1],
-            # prey.observer.Lparticle[1:prey.observer.nLparticles[], 2],
-            color=colour_likelihood, markersize=size_likelihood, strokewidth=0.1)
+    # Prey
+    prey_plt = poly!(left_panel,
+        decompose(Point2f, Circle(Point2f(0., 0.), prey.radius)),
+        color=prey.color, strokewidth=0., strokecolor=prey.gutcolor)
 
-        # plot posterior particles
-        Pparticle_plt = scatter!(left_panel, prey.observer.Pparticle[:],
-            # prey.observer.Pparticle[1:prey.observer.nPparticles[], 1],
-            # prey.observer.Pparticle[1:prey.observer.nPparticles[], 2],
-            color=colour_posterior, markersize=size_posterior, strokewidth=0.1)
 
-    # plot projection of likelihood particles into prey margin
-    # nb this is a dummy plot
-    # the correct particle locations are inserted before first plot
+    receptor_plt = scatter!(left_panel, prey.receptor.position[:], #prey.receptor.x, prey.receptor.y ,
+        markersize=prey.receptor.size,
+        color=[prey.receptor.openColor for i in 1:prey.receptor.N],
+        strokecolor=:black, strokewidth=0.1)
+
+    # The following particle plots are "dummies". We don't know the particle locations yet.
+    # These commands create scene objects whose values will be updated during simulation.
+
+    # Likelihood particles (samples from likelihood)
+    # in the world (ie on the mat)
+    Lparticle_plt = scatter!(left_panel,prey.observer.Lparticle[:], 
+        color=colour_likelihood, markersize=size_likelihood, strokewidth=0.0)
+
+    # Posterior particles (in world/mat)
+    Pparticle_plt = scatter!(left_panel, prey.observer.Pparticle[:],
+        color=colour_posterior, markersize=size_posterior, strokewidth=0.0)
+
+    # Projection of likelihood particles into prey margin
     observation_plt = scatter!(left_panel, prey.observer.Sparticle[:],
-        # zeros(prey.observer.nLparticles[]),
-        # zeros(prey.observer.nLparticles[]),
-        color=:yellow, strokewidth=0, markersize=size_observation )
+    color=colour_observation, strokewidth=0, markersize=size_observation )
 
-    # plot projection of posterior particles into prey margin
-    # nb this is a dummy plot
-    # the correct particle locations are inserted before first plot
+    # Projection of posterior particles into prey margin
     belief_plt = scatter!(left_panel, prey.observer.Bparticle[:], 
-        # zeros(prey.observer.nPparticles[]),
-        # zeros(prey.observer.nPparticles[]),
-                            color=colour_posterior, strokewidth=0, markersize=size_belief)
+                color=colour_posterior, strokewidth=0, markersize=size_belief)
 
-    Likely_plt = plot!( right_panel,
-        OffsetArrays.no_offset_view(prey.observer.likelihood), colorrange = (0.0, 1.25), colormap = :copper)  # :turku
+    # gut drawn last to hide "unused" particles,which have coords (0,0) 
+    # & shoe up as a spurious point in the middle
+    preyGut_plt = poly!(left_panel,
+    decompose(Point2f, Circle(Point2f(0., 0.), prey.gutradius)),
+    color=prey.gutcolor, strokewidth=0.5, strokecolor=prey.gutcolor*.75)
 
-    Posty_plt =  surface!( middle_panel , 1:WorldSize, 1:WorldSize,
-        OffsetArrays.no_offset_view(prey.observer.posterior),  colormap = :magma)
 
     # PostContour_plt = contour!(right_panel, 1:WorldSize, 1:WorldSize,
     #     lift(u->u, Posty_plt[3]), levels = [1.0e-6, 1.0e-5, 1.0e-4], color = RGB(.35,.35,.35))
 
-    predator_right_plt = poly!(right_panel,
-        lift(s -> decompose(Point2f, Circle(Point2f(
-            mat_radius + predator.position[][1], mat_radius + predator.position[][2]),
-            predator.radius)), t ),
-            color=RGBA(0.0, 0.0, 0.0, 0.0),
-            strokecolor=predator.edgecolor,
-            strokewidth=1.0,
-        )
+    # predator_right_plt = poly!(right_panel,
+    #     lift(s -> decompose(Point2f, Circle(Point2f(
+    #         mat_radius + predator.position[][1], mat_radius + predator.position[][2]),
+    #         predator.radius)), t ),  color=predator.color, strokecolor=predator.edgecolor, strokewidth=.5)
+        
 
         predator_middle_plt = poly!( middle_panel,
             lift(s -> decompose(Point2f,
                 Circle(Point2f(mat_radius + predator.position[][1], mat_radius + predator.position[][2]),
-                predator.radius) ), t),
-                color=RGBA(0.0, 0.0, 0.0, 0.0),
-                strokecolor=predator.edgecolor,
-                strokewidth=1.0    
-            )
+                predator.radius) ), t), color=predator.color, strokecolor=predator.edgecolor, strokewidth=.5)
 
-        prey_Lcopy_plt = poly!(middle_panel,
+
+        prey_Right_plt = poly!(middle_panel,
             decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius)),
-            color=RGBA(0.0, 0.0, 0.0, 0.0), strokewidth=1.5, strokecolor=prey.gutcolor)
+            color=prey.color, strokewidth=0.0, strokecolor=prey.gutcolor)
 
+        # Prey gut, middle panel
         preygut_Lcopy_plt = poly!(middle_panel,
             decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius - prey.marginwidth + 1)),
-            color=prey.gutcolor, strokewidth=0.5, strokecolor=prey.gutcolor*.75)
+            color=prey.gutcolor, strokewidth=0.0, strokecolor=prey.gutcolor)
 
-        prey_Pcopy_plt = poly!(right_panel,
-            decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius)),
-            color=RGBA(0.0, 0.0, 0.0, 0.0), strokewidth=1.5, strokecolor=prey.gutcolor)
+        # prey_Pcopy_plt = poly!(right_panel,
+        #     decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius)),
+        #     color=RGBA(0.0, 0.0, 0.0, 0.0), strokewidth=1.5, strokecolor=prey.gutcolor)
 
-        preygut_Pcopy_plt = poly!(right_panel,
-            decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius - prey.marginwidth + 1)),
-            color=prey.gutcolor, strokewidth=0.5, strokecolor=prey.gutcolor*.75)
-
-
-
-        # Prey
-        prey_plt = poly!(left_panel,
-            decompose(Point2f, Circle(Point2f(0., 0.), prey.radius)),
-            color=prey.color, strokewidth=0.25, strokecolor=prey.gutcolor)
-
-        preyGut_plt = poly!(left_panel,
-            decompose(Point2f, Circle(Point2f(0., 0.), prey.gutradius)),
-            color=prey.gutcolor, strokewidth=0.5, strokecolor=prey.gutcolor*.75)
-
-
-        receptor_plt = scatter!(left_panel, prey.receptor.position[:], #prey.receptor.x, prey.receptor.y ,
-            markersize=prey.receptor.size,
-            color=[prey.receptor.openColor for i in 1:prey.receptor.N],
-            strokecolor=:black, strokewidth=0.25)
+        # preygut_Pcopy_plt = poly!(right_panel,
+        #     decompose(Point2f, Circle(Point2f(mat_radius, mat_radius), prey.radius - prey.marginwidth + 1)),
+        #     color=prey.gutcolor, strokewidth=0.5, strokecolor=prey.gutcolor*.75)
 
         L_receptor_plt = scatter!(middle_panel, 
             (mat_radius + 1.0)*fill(Point2(1.0, 1.0), length(prey.receptor.position)) + prey.receptor.position,
             # mat_radius .+1 .+prey.receptor.x, mat_radius .+1 .+prey.receptor.y ,
             markersize=prey.receptor.size,
             color=[prey.receptor.openColor for i in 1:prey.receptor.N],
-            strokecolor=:black, strokewidth=0.25)
+            strokecolor=:black, strokewidth=0.1)
 
-        R_receptor_plt = scatter!(right_panel,  
-            (mat_radius + 1.0)*fill(Point2(1.0, 1.0), length(prey.receptor.position)) + prey.receptor.position,
-            #   mat_radius .+1 .+prey.receptor.x, mat_radius .+1 .+prey.receptor.y ,
-            markersize=prey.receptor.size,
-            color=[prey.receptor.openColor for i in 1:prey.receptor.N],
-            strokecolor=:black, strokewidth=0.25)
+        # R_receptor_plt = scatter!(right_panel,  
+        #     (mat_radius + 1.0)*fill(Point2(1.0, 1.0), length(prey.receptor.position)) + prey.receptor.position,
+        #     #   mat_radius .+1 .+prey.receptor.x, mat_radius .+1 .+prey.receptor.y ,
+        #     markersize=prey.receptor.size,
+        #     color=[prey.receptor.openColor for i in 1:prey.receptor.N],
+        #     strokecolor=:black, strokewidth=0.25)
+
+            Likely_plt = plot!( middle_panel,
+            OffsetArrays.no_offset_view(prey.observer.likelihood), colorrange = (0.0, 1.25), colormap = Lcolormap)  # :turku
+    
+        Posty_plt =  heatmap!( middle_panel , 1:WorldSize, 1:WorldSize,
+            OffsetArrays.no_offset_view(prey.observer.posterior),  colormap = Pcolormap) #:PuRd) # was surface!
+    
+        idealParticlePlot = scatter!(middle_panel , 
+                rejectSample(prey, n_posterior_particles).+Point2f(400.,400.), color = colour_posterior, markersize=size_posterior/2.)
             
         if PHOTORECEPTION
         crystal_plt = scatter!(left_panel, prey.photoreceptor.position[:], #prey.photoreceptor.x, prey.photoreceptor.y,
@@ -472,6 +461,16 @@ for rep = 1:N_REPS
                 strokecolor=:black, strokewidth=0.25)
         end
 
+        # mask predator outside mat
+        heatmap!(left_panel, -mat_radius:mat_radius,-mat_radius:mat_radius, outmask, colormap = BGcolormap)
+        heatmap!(middle_panel, 0:WorldSize,0:WorldSize, outmask, colormap = BGcolormap)
+
+        # Display simulation time and distance to predator (Δ) 
+        text!(left_panel, @lift(string("T = ", Int64($t[]))), color = :black, 
+                position = (40-mat_radius,60-mat_radius), fontsize = 16)
+
+        text!(left_panel, @lift(string("Δ = ", Int64(cround(prey.observer.Δ[Int64($t[])] ) ))), color = :black, 
+                position = (40-mat_radius,35-mat_radius), fontsize = 16)                #prey.observer.range[i]
 
         # reset axis limits (have been auto-adjusted by MakieLayout)
         xlims!(left_panel, -mat_radius, mat_radius)
@@ -479,11 +478,13 @@ for rep = 1:N_REPS
 
         xlims!(middle_panel, 0, WorldSize)
         ylims!(middle_panel, 0, WorldSize)
-        xlims!(right_panel, 0, WorldSize)
-        ylims!(right_panel, 0, WorldSize)
+        # xlims!(right_panel, 0, WorldSize)
+        # ylims!(right_panel, 0, WorldSize)
 
 
     end #SHOW_ANIMATION
+
+    display(scene)
 
     videoFileName = DataFileName * "_" * string(rep) * ".mkv"
 
@@ -491,7 +492,7 @@ for rep = 1:N_REPS
     # comment out ONE of the following 2 lines to generate video file or not
     # NB animation can be displayed while simulating, by setting SHOW_ANIMATION = true, without saving as video file,
     # SHOW_ANIMATION must be true for video to be recorded.
-    record(scene, videoFileName , framerate=30, 1:nFrames) do i     # simulate and write video file
+    record(scene, videoFileName , 1:nFrames; framerate=30 ) do i     # simulate and write video file
     #for i in 1:nFrames                                         # simulate without writing video file
 
 
@@ -532,7 +533,7 @@ for rep = 1:N_REPS
 
             receptorColor = [prey.receptor.closedColor for j = 1:prey.receptor.N]
             receptorColor[findall(x -> x == 1, prey.receptor.state)] .= prey.receptor.openColor
-            receptor_plt.color[] = L_receptor_plt.color[] = R_receptor_plt.color[] = receptorColor
+            receptor_plt.color[] = L_receptor_plt.color[] = receptorColor
 
             # update likelihood particle plot
             Lparticle_plt[1] = prey.observer.Lparticle
@@ -548,9 +549,16 @@ for rep = 1:N_REPS
             # update observation particle plot
             belief_plt[1] = prey.observer.Bparticle
 
+            # Pmask =  copy(OffsetArrays.no_offset_view(prey.observer.likelihood))
+            # Pmask[findall(Pmask.<maximum(Pmask)*8.0e-1)].=NaN
+            Likely_plt[1] = OffsetArrays.no_offset_view(prey.observer.likelihood)
 
-            Likely_plt[1] = mask .* OffsetArrays.no_offset_view(prey.observer.likelihood)
-            Posty_plt[3] = mask .* OffsetArrays.no_offset_view(prey.observer.posterior)
+            # transparency mask for small values of posterior
+            # Pmask =  copy(OffsetArrays.no_offset_view(prey.observer.posterior))
+            # Pmask[findall(Pmask.<maximum(Pmask)*5.0e-1)].=NaN
+            Posty_plt[3] = OffsetArrays.no_offset_view(prey.observer.posterior)
+
+            idealParticlePlot[1] = rejectSample(prey, n_posterior_particles).+Point2f(400.,400.) # sample from true posterior
 
 
         else
@@ -624,13 +632,13 @@ for rep = 1:N_REPS
 
       #  t = 1
 
-    end # for rep
+   end # for rep
 
-end # placozoanStalker function
+# end # placozoanStalker function
 
 
-# run it
-placozoanStalker()
+# # run it
+# placozoanStalker()
 
 
 

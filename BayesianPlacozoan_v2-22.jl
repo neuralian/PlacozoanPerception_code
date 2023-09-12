@@ -3,6 +3,7 @@
 
 using GLMakie
 using Colors
+using ColorSchemes
 using OffsetArrays
 using Distributions
 using Random
@@ -11,7 +12,7 @@ using CSV
 using DataFrames
 using PolygonOps  
 
-mcell_radius = 2.5
+mcell_radius = 2.5 # μm
 
 const max_nLparticles = 2^14
 const max_nPparticles = 2^14
@@ -19,45 +20,58 @@ const max_nPparticles = 2^14
 
 # colors
 # scene
-const colour_mat =  RGB(.1, .45, .4) # "#87966c"
-const colour_background = RGB(0.1, 0.1, 0.1)
-const title_color = RGB(.5, .5, .75)
+colour_mat =  RGB(93/255, 168/255., 153/255.)
+colour_background = RGB(240/255., 250/255., 240/255.) # RGB(0.1, 0.1, 0.1)
+title_color = :black # RGB(.5, .5, .75)
+colour_mat_edge = RGB(80/255.,80/255.,80/255.)
 
 # external/world particles
-const colour_likelihood = "#f5cd4c" #RGB(1.0,.85, 0.65)
+colour_likelihood = RGB(220/255., 205/255., 125/255.)
 #colour_prior = RGB(0.75, 0.45, 0.45)
 #colour_posterior = RGB(0.85, 0.25, 0.25)
-const colour_posterior = RGB(.75,.25, 0.25) #"#a02c7d" #
+colour_posterior = RGB(126/255., 41/255., 84/255.)
 
 # internal/spike particles
-const colour_observation = :yellow
+colour_observation = RGB(255/255, 255/255, 0/255)
 
-# placozoans
-const gutcolor = RGB(0.25, 0.25, 0.25)
+# prey placozoan color scheme
+gutcolor    = RGB(150/255., 125/255.,125/255.)
+margincolor = RGB(200/255., 175/255.,175/255.)
+edgecolor   = RGB(150/255., 125/255.,125/255.)
+
+# predator placozoan color scheme
+pd_gutcolor    = RGBA(150/255., 125/255.,125/255., .25)
+pd_margincolor = RGBA(200/255., 175/255.,175/255., .25)
+pd_edgecolor   = colour_background
+
+# Colour maps for posterior and likelihood
+Pcolormap = ColorScheme(range(RGBA(margincolor, 0.), stop = RGBA(0.,0.,1.,1.), length = 10), "gradient", "posterior color map")
+Lcolormap = ColorScheme(range(RGBA(margincolor, 0.), stop = RGBA(230/255,150/255, 0.,1.), length = 10), "gradient", "liklihood color map")
+BGcolormap = ColorScheme(range(RGBA(colour_background, 0.), stop = RGBA(colour_background, 1.0), length = 10), "gradient", "background color map")
 
 
 
 # receptors
-const colour_receptor_OPEN  = RGB(255/255,235/255,50/255)
-const colour_receptor_CLOSED  = RGB(100/255,120/255,75/255)
-const sizeof_receptor = 6.0
+colour_receptor_OPEN  = RGB(255/255,235/255,50/255)
+colour_receptor_CLOSED  = RGB(180/255.,150/255.,150/255.)
+sizeof_receptor = 10.0
 
 #crystal cells
-const vision_light = RGB(1.0, 1.0, 1.0)
-const vision_dark = RGB(0.0, 0.0, 0.0)
-const sizeof_crystal = 5.0
-const vision_SD = 0.8
+vision_light = RGB(1.0, 1.0, 1.0)
+vision_dark = RGB(0.0, 0.0, 0.0)
+sizeof_crystal = 5.0
+vision_SD = 0.8
 
 
 
 # Particle sizes  
-const size_likelihood = 2.0
+size_likelihood = 4.0
 #size_prior = 4
-const size_posterior = 2.5
+size_posterior = 3.0
 
-const size_observation = 1.5
+size_observation = 2.0
 #size_prediction = 2
-const size_belief = 1.5
+size_belief = 3.0
 
 # Physics structure
 # contains physical parameters
@@ -80,16 +94,17 @@ end
 # Physics constructor
 function Physics()
 
-  ρ = 25.0          # Resisitivity of seawater 25Ω.cm
-  δ = 20.e-6*100.   # dipole separation 10μm in cm
-  I = 2.5e-12*1.0e6 # dipole current 1pA. converted to μA
+  ρ = 25.0e4         # Resisitivity of seawater 25Ω.cm in Ω.μm
+  δ = 20.0           # dipole separation 20μm
+  I = 0.1      # dipole current in μA
 
   # Johnson-Nyquist noise
   kB = 1.38e-23           # Bolzmann's constant
   T = 300.                # Kelvin
-  Ω = 20.e6               # receptor impedance
+  Ω = 20.e3               # receptor impedance
   Δf = 1.0e3              # bandwidth
-  σ = sqrt(4.0*kB*T*Δf)   # Johnson-Nyquist noise RMS
+  #σ = sqrt(4.0*kB*T*Δf)   # Johnson-Nyquist noise RMS
+  σ = sqrt(4.0*kB*T*Ω*Δf) 
 
   return Physics(ρ, δ, I, kB, T, Ω, Δf, σ)
 
@@ -316,9 +331,9 @@ function Placozoan(
   diffuseCoef::Float64,
   collisionRadius::Float64,
   nFrames::Int64,
-  bodycolor = RGBA(0.9, 0.75, 0.65, 0.5),
+  bodycolor = margincolor,
   gutcolor = gutcolor,
-  edgecolor = RGB(0.0, 0.0, 0.0),
+  edgecolor = edgecolor
   )
 
   observer =  Observer(radius, eRange, nLparticles, nPparticles, 
@@ -365,7 +380,7 @@ end # Placozoan constructor
 # i.e. a predator in the initial scenario
 
 function Placozoan(radius::Int64, margin::Int64, fieldrange::Int64, position::Point2{Float64}, speed::Float64, brownian::Float64,
-                  bodycolor::RGBA, gutcolor::RGBA, edgecolor::RGB)
+                  bodycolor=margincolor, gutcolor=gutcolor, edgecolor=edgecolor)
 
    return Placozoan(radius, margin, radius-margin, 12.0,  [position],
      zeros(fieldrange), zeros(fieldrange), fieldrange,
@@ -399,10 +414,16 @@ end
 # function computes receptor channel Open probability
 # as a function of electric field strength
 # calibrated to 10% thermal noise-driven open probability for target at infinity
+#ps = physics.σ*sqrt(20.0e3)
 v0 = -physics.σ*log(0.1/(1.0-0.1))
-pOpenGivenFieldstrength(e) =  1.0./(1 .+ exp.(-(e.-v0)/physics.σ))
+#pOpenGivenFieldstrength(e) =  1.0./(1 .+ exp.(-(e.-v0)/physics.σ))  #original
+#v0 = -ps*log(0.1/(1.0-0.1))
+Ka = 8.0e3   # 8mV = 8000 μV
+pOpenGivenFieldstrength(e) =  1.0./(1 .+ exp.(-(e.-1.8e3)/Ka))   # mV
+# electroreceptor open state probability as function of membrane potential
+pOpen(v) = 1.0./(1 .+ exp.(-(v.-1.75e4)/Ka)) 
 
-# function computes single-cell dipole field strength at distance r, in μV/cm
+# function computes single-cell dipole field strength at distance r, in μV/μm
 dipoleFieldstrength(r::Float64) = 2π*physics.ρ*physics.I*physics.δ./r.^3
 
 # precomputes field strength and potential
@@ -410,20 +431,24 @@ dipoleFieldstrength(r::Float64) = 2π*physics.ρ*physics.I*physics.δ./r.^3
 # due to all dipoles in a placozoan.
 # updates placozoan.field and placozoan.potential
 function placozoanFieldstrength!(p::Placozoan)
+
   for a in p.celldiam:p.celldiam:(p.gutradius - p.celldiam)
     n = round(2π*a/p.celldiam)    # number of dipoles in layer
     x = [ a*cos(2π*i/n) for i in 1:n]     # location of dipole
     y = [ a*sin(2π*i/n) for i in 1:n]
     for d in 1:p.fieldrange
-      r = sqrt.(((d.+p.radius.-x).^2 + y.^2)).*1.0e-4
+
+      r = sqrt.(((d.+p.radius.-x).^2 + y.^2))
       #r = sqrt.(((d.-x).^2 + y.^2)).*1.0e-4
       p.field[d] = p.field[d] + sum(dipoleFieldstrength.(r))
+     #@infiltrate
     end
-    # electric field in μV/cm converted to potential across 10μm receptor
+    # electric field in μV/μm converted to potential across 10μm receptor
     # nb 1cm = 10^4 μm
-    p.potential[:] = p.field./10.0e4*10.0
-  end
 
+    #@infiltrate
+  end
+  p.potential[:] = cumsum(p.field[end:-1:1])[end:-1:1]
 end
 
 
@@ -434,7 +459,7 @@ function Electroreceptor_pOpen(d, V)
    if i > length(V)
      i = length(V)
    end
-   return pOpenGivenFieldstrength(V[i]*1.0e-6)
+   return pOpen(V[i])
  end
 
 
@@ -755,7 +780,7 @@ function bayesParticleUpdate(placozoan::Placozoan)
     OVERFLOW = false
     for i = 1:placozoan.observer.nPparticles[]
       for j = 1:collision[i]  # for each collision of ith particle
-        nnew = 4 #1+rand(Poisson(2)) #*(distance(placozoan.observer.Pparticle[i])/placozoan.radius)^.5))  # number of posterior particles after collision 
+        nnew = 8 #1+rand(Poisson(2)) #*(distance(placozoan.observer.Pparticle[i])/placozoan.radius)^.5))  # number of posterior particles after collision was 4
         for k = 1:nnew
           newparticlecount += 1
           if newparticlecount > maxNewParticles
@@ -883,10 +908,9 @@ function bayesArrayUpdate(p::Placozoan)
  
 
   # diffuse and mix with uniform prior 
-  p.observer.posterior[:,:]  = (1.0-p.observer.posteriorDeathRate[])*
-    imfilter(p.observer.posterior, Kernel.gaussian(p.observer.diffuseCoef[])) .+ 
-              p.observer.posteriorDeathRate[]/p.observer.N
-
+  p.observer.posterior[:,:]  =  imfilter(p.observer.posterior,  Kernel.gaussian(p.observer.diffuseCoef[])) 
+             #.+ p.observer.posteriorDeathRate[]/p.observer.N
+             # (1.0-p.observer.posteriorDeathRate[])*
   # renormalize 
   posteriorSum = 0.0
   for i in -p.observer.maxRange:p.observer.maxRange
@@ -942,6 +966,29 @@ function radialSmooth(X::OffsetArray, r::UnitRange{Int64})
   end
 
 end
+
+
+# rejection sample from posterior
+# nb array index is location in μm
+function rejectSample(p::Placozoan, n::Int)
+
+  pmax = maximum(p.observer.posterior)
+  particle = zeros(Point2f, n)
+  count = 0
+  while count < n
+     x = rand(axes(p.observer.posterior,1))   # random x-coord
+     y = rand(axes(p.observer.posterior,2))   # random y-coord
+     if  x^2+y^2 > p.radius^2 && rand()*pmax < p.observer.posterior[x,y]
+      count = count + 1
+      particle[count] = Point2f(x,y)
+     end
+  end
+
+  return particle
+
+end
+
+  
 
 
 # summarize particle distributions
