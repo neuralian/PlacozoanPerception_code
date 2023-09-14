@@ -54,7 +54,7 @@ BGcolormap = ColorScheme(range(RGBA(colour_background, 0.), stop = RGBA(colour_b
 # receptors
 colour_receptor_OPEN  = RGB(255/255,235/255,50/255)
 colour_receptor_CLOSED  = RGB(180/255.,150/255.,150/255.)
-sizeof_receptor = 10.0
+
 
 #crystal cells
 vision_light = RGB(1.0, 1.0, 1.0)
@@ -64,14 +64,6 @@ vision_SD = 0.8
 
 
 
-# Particle sizes  
-size_likelihood = 4.0
-#size_prior = 4
-size_posterior = 3.0
-
-size_observation = 2.0
-#size_prediction = 2
-size_belief = 3.0
 
 # Physics structure
 # contains physical parameters
@@ -1395,7 +1387,7 @@ end
 function posteriorInMcellRF(p::Placozoan)
    
   # get m-cell vertices
-  mc_pts = decompose(Point2f0, Circle(Point2f0(p.mcell.position[][1],p.mcell.position[][2]), p.mcell.r))
+  mc_pts = decompose(Point2f, Circle(Point2f(p.mcell.position[][1],p.mcell.position[][2]), p.mcell.r))
   mc_pts[end] = mc_pts[1]  # close polygon
   rf_pts = copy(mc_pts)  
 
@@ -1410,7 +1402,7 @@ function posteriorInMcellRF(p::Placozoan)
     r1 = (p.radius - r)*(p.observer.maxRange - p.radius)/p.marginwidth + p.radius
     x = r1*cos(Ω)
     y = r1*sin(Ω)
-    rf_pts[j] = Point2f0(x,y)
+    rf_pts[j] = Point2f(x,y)
     if x<xMin xMin = x end
     if x>xMax xMax = x end
     if y<yMin yMin = y end
@@ -1426,7 +1418,7 @@ function posteriorInMcellRF(p::Placozoan)
   Pr = 0.0
   for i in Int64(floor(xMin)):Int64(ceil(xMax))
  for j in j0:j1
-      if inpolygon(Point2f0(i,j), rf_pts)==1
+      if inpolygon(Point2f(i,j), rf_pts)==1
         #Pr = Pr + p.observer.posterior[i,j]
         Pr += p.observer.posterior[i,j] 
       end

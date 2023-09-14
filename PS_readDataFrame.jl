@@ -8,16 +8,17 @@ using Dierckx        # spline interpolation
 #include("makieTheme5.jl")
 
 # read PS data file
-fileName = "PlacozoanStalker10_32_M1_M6.csv"
+fileName = "PlacozoanStalkerV2.0_2023-09-13_16.42.csv"
 D = CSV.read(fileName, DataFrame)
 
 Nreps = Int64(D[:,1][end])
-
+minRange = 10.0
+maxRange = 200.0
 
 # all range vectors as columns of array
 # nb Range was saved as distance between centres of predator and prey, 
 #    subtract radii to get distance from prey to proximal edge of predator
-R = hcat([D.Range[ (D.rep.==i),:][:,1] for i in 1:Nreps]...).-120.0.-150.0  
+R = hcat([D.Range[ (D.rep.==i),:][:,1] for i in 1:Nreps]...)
 
 # K-L divergence estimates as fcns of t
 KLDt = hcat([D.KLD[ (D.rep.==i),:][:,1] for i in 1:Nreps]...)
@@ -74,7 +75,7 @@ MCNt = hcat([D.MN[ (D.rep.==i),:][:,1] for i in 1:Nreps]...)
  # simulation data are saved per timestep, but we want to evaluate 
  # the observer in terms of distance to predator.  
  # convert (interpolate) to values on a regular grid of pred-prey distances
-Rgrid = collect(25:.25:125)
+Rgrid = collect(minRange:.25:maxRange)
 
 ## declare arrays to hold interpolated data
 # Entropy and K-L divergence 
@@ -125,13 +126,14 @@ MCP = Array{Float64,2}(undef,length(Rgrid), Nreps)
 MCN = Array{Float64,2}(undef,length(Rgrid), Nreps)
 
 for rep in 1:Nreps
-    
-    if minimum(R[:, rep])>25.0  # kluge for failed to go distance (rare)
-        R[end,rep] = 25.0
+
+    if minimum(R[:, rep])>minRange  # kluge for failed to go distance (rare)
+        R[end,rep] = minRange
     end
 
-    t25 = findfirst(x -> x<=25, R[:,rep])         # time to 25um range for this rep
+    t25 = findfirst(x -> x<=minRange, R[:,rep])         # time to 25um range for this rep
     i = sortperm(R[1:t25,rep])
+
     
     # entropy & K-L divergence
     sp = Spline1D(R[i,rep], KLDt[i,rep])  # interpolation function (using Dierckx) 
@@ -295,3 +297,4 @@ MCNS = sort(MCN, dims = 2)
 # meanKLD = mean(KLD, dims=2)[:,1]
 # meanKLDI = mean(KLDI, dims=2)[:,1]
 # meanKLD0 = mean(KL
+

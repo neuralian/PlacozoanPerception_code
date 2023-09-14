@@ -27,9 +27,9 @@ Neg = 8  # number of random trials to show
 # FIGURE 1: Entropy
 fig1 = Figure(resolution = (800,600))
 ax1 = Axis(fig1, 
-    xticks = [25 50 75 100 125],
-    yticks = [10 12 14 16 18 20], 
-    title = "Bayesian Uncertainty about Distance to Predator",
+    xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200],
+    yticks = [10, 12, 14, 16, 18], 
+    title = "Range Uncertainty",
     xlabel = "Separation (μm)",
     ylabel = "Entropy (bits)")
 
@@ -61,19 +61,20 @@ ax1.xreversed = true
 
 fig1[1,1] = ax1
 #fig1[1,1] = leg1
-ylims!(ax1,10, 20)
+ylims!(ax1,10, 18)
 
 #xlims!(25, 125)
 display(fig1);
 
-save("Entropy_fig.png", fig1, px_per_unit = 3 )
+#save("Entropy_fig.png", fig1, px_per_unit = 3 )
+save("Entropy_fig.svg", fig1 )
 
 
 #############################################################
 # FIGURE 1a: K-L Divergence 
 fig1a = Figure(resolution = (800,600))
-ax1a = Axis(fig1a, xticks = [25 50 75 100 125], 
-    yticks = [-10 -8 -6 -4 -2],
+ax1a = Axis(fig1a, xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200], 
+    yticks = [-4, -2, 0],
     title = "Information Loss relative to Bayesian Observer",
     xlabel = "Separation (μm)",
     ylabel = "Kullback-Liebler Divergence (bits)")
@@ -83,9 +84,9 @@ ax1a = Axis(fig1a, xticks = [25 50 75 100 125],
 
 # # K-L divergence of uniform random from Bayesian posterior 
 # K-L divergence of uniform random from Bayesian posterior 
-zLine = lines!(Rgrid,-KLD0S[:,iQ50], color = greenishFG, linewidth = thickLineW)
-band!(Rgrid,-KLD0S[:,iQ75] ,-KLD0S[:,iQ25], color = (greenishBG, bandAlpha) )
-[ lines!(Rgrid, -KLD0[:, rand(1:Ncols)], color = greenishFG, linewidth = traceW) for _ in 1:Neg]
+# zLine = lines!(Rgrid,-KLD0S[:,iQ50], color = greenishFG, linewidth = thickLineW)
+# band!(Rgrid,-KLD0S[:,iQ75] ,-KLD0S[:,iQ25], color = (greenishBG, bandAlpha) )
+# [ lines!(Rgrid, -KLD0[:, rand(1:Ncols)], color = greenishFG, linewidth = traceW) for _ in 1:Neg]
 
 # ideal particle filter
 iLine = lines!(Rgrid,-KLDIS[:,iQ50], color = BayesFG, linewidth = thickLineW)
@@ -98,14 +99,14 @@ pLine = lines!(Rgrid,-KLDS[:,iQ50], color =ParticleFG, linewidth = thickLineW)
 band!(Rgrid,-KLDS[:,iQ75] ,-KLDS[:,iQ25], color = (ParticleBG, bandAlpha) )
 ax1a.xreversed = true
 
-leg1a = Legend(fig1a, [pLine iLine zLine], 
-[" Placozoan Model", " Posterior Samples", " Uniform Samples"], 
+leg1a = Legend(fig1a, [pLine, iLine], 
+[" Placozoan Model", " Posterior Samples"], 
             halign = :left, valign = :bottom, markersize = 4, labelsize = 12)
 
 fig1[1,1] = ax1a
 fig1[1,1] = leg1a
 
-ylims!(ax1a, -10, 0)
+ylims!(ax1a, -4, 2)
 
 
 
@@ -113,7 +114,8 @@ ylims!(ax1a, -10, 0)
 display(fig1a);
 
 save("KLD_fig.png", fig1a, px_per_unit = 3 )
-
+save("KLD_fig.svg", fig1a)
+#
 
 
 
@@ -122,25 +124,25 @@ save("KLD_fig.png", fig1a, px_per_unit = 3 )
 # FIGURE 2: Probability of Predator in range
 fig2 = Figure(resolution = (800,600))
 ax2 = Axis(fig2,
-    yticks = [0 0.25 0.5 0.75 1.0],
-    title = "Proximity Detection (Probability of Predator closer than 45μm)",
-    xlabel = "Separation (μm)",
+    yticks = [0, 0.25, 0.5, 0.75, 1.0],
+    title = "Proximity Detection (Probability of Predator within 50μm)",
+    xlabel = "True Range (μm)",
     ylabel = "Posterior Probability",
-    xticks = [25 50 75 100 125])
+    xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200])
 
 #lines!(Rgrid, PR25S[:, iQ50])
 # S = sum(PR50S[:, iQ50])/100.
-band!(Rgrid, PR45S[:, iQ25], PR45S[:, iQ75], color = (BayesBG, bandAlpha) )
-BayesLine = lines!(Rgrid, PR45S[:, iQ50], color = BayesFG, linewidth = thickLineW)
-[ lines!(Rgrid, PR45[:, rand(1:Ncols)], color = BayesFG, linewidth = traceW) for _ in 1:Neg]
+band!(Rgrid, PR50S[:, iQ25], PR50S[:, iQ75], color = (BayesBG, bandAlpha) )
+BayesLine = lines!(Rgrid, PR50S[:, iQ50], color = BayesFG, linewidth = thickLineW)
+[ lines!(Rgrid, PR50[:, rand(1:Ncols)], color = BayesFG, linewidth = traceW) for _ in 1:Neg]
 
 # lines!(Rgrid, NR25S[:, iQ50], color = :blue)
 # S1  = sum(NR50S[:, iQ50])/100.
-band!(Rgrid, NR45S[:, iQ25], NR45S[:, iQ75], color = (ParticleBG, bandAlpha))
-ParticleLine = lines!(Rgrid, NR45S[:, iQ50], color = ParticleFG, linewidth = thickLineW)
-[ lines!(Rgrid, NR45[:, rand(1:Ncols)], color = ParticleFG, linewidth = traceW) for _ in 1:Neg]
+band!(Rgrid, NR50S[:, iQ25], NR50S[:, iQ75], color = (ParticleBG, bandAlpha))
+ParticleLine = lines!(Rgrid, NR50S[:, iQ50], color = ParticleFG, linewidth = thickLineW)
+[ lines!(Rgrid, NR50[:, rand(1:Ncols)], color = ParticleFG, linewidth = traceW) for _ in 1:Neg]
 
-leg2 = Legend(fig2, [BayesLine ParticleLine], 
+leg2 = Legend(fig2, [BayesLine, ParticleLine], 
                     [" Bayesian Observer", " Placozoan Model"], 
             halign = :left, valign = :top, markersize = 4, labelsize = 12)
 
@@ -152,7 +154,8 @@ ax2.xreversed = true
 display(fig2);
 
 
-save("PR_fig.png", fig2, px_per_unit = 3 )
+#save("PR_fig.png", fig2, px_per_unit = 3 )
+save("PR_fig.svg", fig2 )
 
 
 
@@ -162,11 +165,11 @@ save("PR_fig.png", fig2, px_per_unit = 3 )
 fig3 = Figure(resolution = (800,600))
 ax3 = Axis(fig3, #xticks = [25 50 100], 
    # yticks = [0 0.25 0.5 0.75 1.0],
-    title = "(0.05 - 0.5) Credibility Interval for Distance to Predator",
-    xlabel = "True Separation (μm)",
-    ylabel = "Inferred Separation (μm)",
-    xticks = [25 50 75 100 125],
-    yticks = [0 25 50 75 100 125 150 175 200])
+    title = "Range Credibility (0.05-0.5)",
+    xlabel = "True Range (μm)",
+    ylabel = "Perception (μm)",
+    xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200],
+    yticks = [0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300])
 
 
 
@@ -181,7 +184,7 @@ ParticleLine = lines!(Rgrid, QN50S[:,iQ50], color = ParticleFG, linewidth = thic
 
 lines!(Rgrid, Rgrid, color = reddishColor, linewidth = thickLineW )
 
-leg3 = Legend(fig3, [BayesLine ParticleLine], 
+leg3 = Legend(fig3, [BayesLine, ParticleLine], 
                     [" Bayesian Observer", " Placozoan Model"], 
             halign = :right, valign = :top, markersize = 4, labelsize = 12)
 
@@ -193,7 +196,8 @@ ax3.xreversed = true
 display(fig3);
 
 
-save("QP_fig.png", fig3, px_per_unit = 3 )
+#save("QP_fig.png", fig3, px_per_unit = 3 )
+save("QP_fig.svg", fig3)
 
 
 
@@ -202,11 +206,11 @@ save("QP_fig.png", fig3, px_per_unit = 3 )
 fig4 = Figure(resolution = (800,600))
 ax4 = Axis(fig4, #xticks = [25 50 100], 
    # yticks = [0 0.25 0.5 0.75 1.0],
-    title = "Interquartile Range of Direction Error Credibility",
+    title = "Direction Credibility",
     xlabel = "Separation (μm)",
-    ylabel = "Error in Inferred Bearing (degrees)",
-    yticks = [-45 -5 5 45],
-    xticks = [25 50 75 100 125])
+    ylabel = "Bearing Error (degrees)",
+    yticks = [-45, -5, 5, 45],
+    xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200])
 
 
 
@@ -216,7 +220,7 @@ ParticleLine4 = [ lines!(Rgrid, QΘ50[:, rand(1:Ncols)], color = ParticleFG, lin
 band!(Rgrid, Qψ25S[:, iQ50], Qψ75S[:, iQ50], color = (BayesBG,bandAlpha) )
 BayesLine4=[ lines!(Rgrid, Qψ50[:, rand(1:Ncols)], color = BayesFG, linewidth = traceW) for _ in 1:Neg]
 
-leg4 = Legend(fig4, [BayesLine4[1] ParticleLine4[1]], 
+leg4 = Legend(fig4, [BayesLine4[1], ParticleLine4[1]], 
                     [" Bayesian Observer", " Placozoan Model"], 
             halign = :right, valign = :top, markersize = 4, labelsize = 12)
 
@@ -224,7 +228,8 @@ fig4[1,1] = ax4
 fig4[1,1] = leg4
 ax4.xreversed = true
 
-save("Qθ_fig.png", fig4, px_per_unit = 3 )
+#save("Qθ_fig.png", fig4, px_per_unit = 3 )
+save("Qθ_fig.svg", fig4 )
 
 display(fig4);
 
@@ -235,10 +240,10 @@ display(fig4);
 fig5 = Figure(resolution = (800,600))
 ax5 = Axis(fig5, #xticks = [25 50 100], 
    # yticks = [0 0.25 0.5 0.75 1.0],
-    title = "M-cell (Threat-detecting/escape command cell) Activation",
+    title = "M-cell Activation",
     xlabel = "Separation (μm)",
     ylabel = "Probability",
-    xticks = [25 50 75 100 125])
+    xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200])
 
 
 SC = 1.0
@@ -252,7 +257,7 @@ ParticleLine5=lines!(Rgrid, SC*MCNS[:, iQ50], color = ParticleFG, linewidth = th
 
 
 
-leg5 = Legend(fig5, [BayesLine5 ParticleLine5], 
+leg5 = Legend(fig5, [BayesLine5, ParticleLine5], 
                     [" Bayesian Observer", " Placozoan Model"], 
             halign = :left, valign = :top, markersize = 4, labelsize = 12)
 
@@ -260,7 +265,8 @@ fig5[1,1] = ax5
 fig5[1,1] = leg5
 ax5.xreversed = true
 
-save("MC_fig.png", fig5, px_per_unit = 3 )
+#save("MC_fig.png", fig5, px_per_unit = 3 )
+save("MC_fig.svg", fig5 )
 
 display(fig5);
 

@@ -39,6 +39,18 @@ include("BayesianPlacozoan_v2-22.jl")
 # wrap the script in a function so it compiles to (more) specialized (faster) code
 #function placozoanStalker()
 
+videoScale = 1.75
+# Particle sizes  
+size_likelihood = 4.0*videoScale
+#size_prior = 4
+size_posterior = 4.0*videoScale
+
+size_observation = 3.0*videoScale
+#size_prediction = 2
+size_belief = 3.0*videoScale
+
+sizeof_receptor = 10.0*videoScale
+
 
 # SIMULATION parameters
 n_likelihood_particles =  800 #1600 #6400
@@ -57,7 +69,7 @@ SHOW_ANIMATION = true
 # log parameters and simulation statistics per trial true/false 
 
 
-LOG_DATA = false
+LOG_DATA = true
 
 
 
@@ -313,7 +325,8 @@ for rep = 1:N_REPS
         #     hidespines!(left_panel)
         #     hidedecorations!(left_panel)
         # else
-        scene = Figure(resolution = ( Int(cround(2 * .75 * WorldSize)), Int(cround(.75 * WorldSize + 40)) ), fontsize = 16, backgroundcolor = colour_background)
+        scene = Figure(resolution = ( Int(cround(videoScale*2 * .75 * WorldSize)), 
+                Int(cround(videoScale*(.75 * WorldSize + 40))) ), fontsize = 16*videoScale, backgroundcolor = colour_background)
         left_panel = scene[1,1] = Axis(scene, title="Placozoan",   titlecolor = title_color, backgroundcolor=:white )
         middle_panel = scene[1, 2] = Axis(scene, title="Bayesian",  titlecolor = title_color, backgroundcolor=:white)
         # right_panel = scene[1, 3] = Axis(scene, title="Likelihood", titlecolor = title_color, backgroundcolor=colour_background)
@@ -452,7 +465,7 @@ for rep = 1:N_REPS
             OffsetArrays.no_offset_view(prey.observer.posterior),  colormap = Pcolormap) #:PuRd) # was surface!
     
         idealParticlePlot = scatter!(middle_panel , 
-                rejectSample(prey, n_posterior_particles).+Point2f(400.,400.), color = colour_posterior, markersize=size_posterior/2.)
+                rejectSample(prey, n_posterior_particles).+Point2f(400.,400.), color = colour_posterior, markersize=size_posterior*0.75)
             
         if PHOTORECEPTION
         crystal_plt = scatter!(left_panel, prey.photoreceptor.position[:], #prey.photoreceptor.x, prey.photoreceptor.y,
@@ -467,10 +480,10 @@ for rep = 1:N_REPS
 
         # Display simulation time and distance to predator (Δ) 
         text!(left_panel, @lift(string("T = ", Int64($t[]))), color = :black, 
-                position = (40-mat_radius,60-mat_radius), fontsize = 16)
+                position = (40-mat_radius,60-mat_radius), fontsize = 16*videoScale)
 
         text!(left_panel, @lift(string("Δ = ", Int64(cround(prey.observer.Δ[Int64($t[])] ) ))), color = :black, 
-                position = (40-mat_radius,35-mat_radius), fontsize = 16)                #prey.observer.range[i]
+                position = (40-mat_radius,35-mat_radius), fontsize = 16*videoScale)                #prey.observer.range[i]
 
         # reset axis limits (have been auto-adjusted by MakieLayout)
         xlims!(left_panel, -mat_radius, mat_radius)
@@ -482,18 +495,20 @@ for rep = 1:N_REPS
         # ylims!(right_panel, 0, WorldSize)
 
 
-    end #SHOW_ANIMATION
+   
 
     display(scene)
 
-    videoFileName = DataFileName * "_" * string(rep) * ".mkv"
+end #SHOW_ANIMATION
+
+    videoFileName = DataFileName * "_" * string(rep) * ".mp4"
 
     # VIDEO RECORDING ON/OFF
     # comment out ONE of the following 2 lines to generate video file or not
     # NB animation can be displayed while simulating, by setting SHOW_ANIMATION = true, without saving as video file,
     # SHOW_ANIMATION must be true for video to be recorded.
-    record(scene, videoFileName , 1:nFrames; framerate=30 ) do i     # simulate and write video file
-    #for i in 1:nFrames                                         # simulate without writing video file
+    #record(scene, videoFileName , 1:nFrames; framerate=30 ) do i     # simulate and write video file
+    for i in 1:nFrames                                         # simulate without writing video file
 
 
         # predator takes a stochastic step toward prey
