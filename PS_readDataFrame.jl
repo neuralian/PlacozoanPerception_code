@@ -8,11 +8,11 @@ using Dierckx        # spline interpolation
 #include("makieTheme5.jl")
 
 # read PS data file
-fileName = "PlacozoanStalkerV2.0_2023-09-13_16.42.csv"
+fileName = "PlacozoanStalker2023-09-15_18.31.csv"
 D = CSV.read(fileName, DataFrame)
 
 Nreps = Int64(D[:,1][end])
-minRange = 10.0
+minRange = 25.0
 maxRange = 200.0
 
 # all range vectors as columns of array
@@ -122,9 +122,16 @@ QΘ95 = Array{Float64,2}(undef,length(Rgrid), Nreps)
 QΘ99 = Array{Float64,2}(undef,length(Rgrid), Nreps)
 
 # cellular proximity detector
-MCP = Array{Float64,2}(undef,length(Rgrid), Nreps)
-MCN = Array{Float64,2}(undef,length(Rgrid), Nreps)
+MCP = Array{Float64,2}(undef,length(Rgrid), Nreps) # Bayesian
+MCN = Array{Float64,2}(undef,length(Rgrid), Nreps) # Placozoan
 
+# simulation uses discrete time (grid of time points)
+# but the key coordinate for the simulated behaviour is distance, not time.
+# ie the prey decision is a function of perceived range to predator,
+# "Timing is everything" but the real issue is spatial perception not timing 
+# It matters what the prey perceives when the predator is at a certain range,
+# but it does not matter when this happens.
+# We start by mapping the time series data onto a grid of distances  
 for rep in 1:Nreps
 
     if minimum(R[:, rep])>minRange  # kluge for failed to go distance (rare)

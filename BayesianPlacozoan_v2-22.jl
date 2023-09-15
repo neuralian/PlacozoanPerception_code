@@ -354,8 +354,8 @@ function Placozoan(
       receptor,
       crystalcell,
       observer,
-      Mcell(radius-7.14, mcell_radius, [Point2(0.0, 0.0)] ),
-      Mcell(radius-5.5, mcell_radius, [Point2(0.0, 0.0)] ),
+      Mcell(radius-7.0, mcell_radius, [Point2(0.0, 0.0)] ),
+      Mcell(radius-7.0, mcell_radius, [Point2(0.0, 0.0)] ),
       [0.0],  
       [diffuseCoef],
       [0.0],
@@ -986,7 +986,7 @@ end
 # summarize particle distributions
 function particleStats(prey::Placozoan, predator::Placozoan)
 
-  # Θ = atan(predator.position[][2], predator.position[][1])    # bearing to centre of predator
+  bearing2predator = atan(predator.position[][2], predator.position[][1])    # bearing to centre of predator
 
   # point on the boundary of the predator that is closest to the prey
   pClosest = predator.position[] - predator.radius*(predator.position[]-prey.position[])/distance(predator.position[]-prey.position[])  
@@ -1031,7 +1031,8 @@ function particleStats(prey::Placozoan, predator::Placozoan)
   # M-cell threat estimate
   # nb M-cell is positioned dynamically on the predator bearing
   # so 1 M-cell simulates the closest of an array of M-cells
-  prey.pcell.position[] = prey.pcell.d*Point2(cos(bearing + Qθ[iQmed]*π/180.0), sin(bearing + Qθ[iQmed]*π/180.0))
+ # prey.pcell.position[] = prey.pcell.d*Point2(cos(bearing + Qθ[iQmed]*π/180.0), sin(bearing + Qθ[iQmed]*π/180.0))
+  prey.pcell.position[] = prey.pcell.d * Point2( cos(bearing2predator), sin(bearing2predator) )
   p = 0   # initialize particle-in-threat-zone count
   for i = 1:N
     if distance(prey.pcell.position[], prey.observer.Bparticle[i]) <= prey.pcell.r
@@ -1116,10 +1117,31 @@ function observerStats(prey::Placozoan, predator::Placozoan)
 
   # update mcell coords
   prey.mcell.position[] = prey.mcell.d * Point2( cos(bearing2predator), sin(bearing2predator) )
-  # probability of predator in M-cell RF
-  MP = posteriorInMcellRF(prey)
 
-  (PR, QP, QΘ, MP)
+  ############ COMMENTED OUT numerical Bayesian computation of P(predator in RF)
+  # replaced with random sample estimate 
+  # # probability of predator in M-cell RF
+  # MP = posteriorInMcellRF(prey)
+
+
+
+  prey.mcell.position[] = prey.mcell.d * Point2( cos(bearing2predator), sin(bearing2predator) )
+  p = 0   # initialize particle-in-threat-zone count
+  N = prey.observer.nPparticles[]
+  aSample = rejectSample(prey, N) # random sample from posterior  #TBD already calculating this for plot
+  # project into marginal zone
+  R = [sqrt(aSample[i][1]^2 + aSample[i][2]^2) for i in 1:N]
+  r = prey.radius .- prey.marginwidth*(R .- prey.radius)./(prey.observer.maxRange-prey.radius)
+
+  for i = 1:N
+    if distance(prey.mcell.position[], aSample[i]*r[i]/R[i]) <= prey.mcell.r
+      p = p + 1
+    end
+  end
+  p = p/N  # particle count to probability estimate
+
+
+  (PR, QP, QΘ, p)
 
 end
 

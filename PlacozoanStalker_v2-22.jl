@@ -37,7 +37,7 @@ using Dates
 include("BayesianPlacozoan_v2-22.jl")
 
 # wrap the script in a function so it compiles to (more) specialized (faster) code
-#function placozoanStalker()
+# function placozoanStalker()
 
 videoScale = 1.75
 # Particle sizes  
@@ -58,7 +58,7 @@ n_posterior_particles = 1600 # 3200 # 12800
 posteriorDeathRate = .001
 
 # number of replicate simulations for each combination of the above parameters
-N_REPS = 4
+N_REPS = 36
 
 # show animation while simulating true/false
 # must be true if animation is to be recorded/saved.
@@ -89,10 +89,10 @@ end
 
 
 # simulation parameters
-nFrames = 600    # number of animation frames
+nFrames = 480    # number of animation frames
 burn_time = 30      # burn in posterior initially for 30 sec with predator outside observable world
 mat_radius = 400    # μm
-min_Δ = 5.0         # predator closest approach distance
+min_Δ = 20.0         # predator closest approach distance
 Δinit = 200.0
 dt = 1.00
 
@@ -118,7 +118,7 @@ posterior_diffusion_coefficient = 4.0
 # predator parameters
 predator_radius = 150
 predator_margin = 0
-predator_speed =  .365
+predator_speed =  .375 # .365
 predator_brownian = 0.0 # 0.5*posterior_diffusion_coefficient
 predator_fieldrange = mat_radius
 

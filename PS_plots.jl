@@ -30,7 +30,7 @@ ax1 = Axis(fig1,
     xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200],
     yticks = [10, 12, 14, 16, 18], 
     title = "Range Uncertainty",
-    xlabel = "Separation (μm)",
+    xlabel = "Range (μm)",
     ylabel = "Entropy (bits)")
 
 
@@ -74,9 +74,9 @@ save("Entropy_fig.svg", fig1 )
 # FIGURE 1a: K-L Divergence 
 fig1a = Figure(resolution = (800,600))
 ax1a = Axis(fig1a, xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200], 
-    yticks = [-4, -2, 0],
+    yticks = -2:.2:.2,
     title = "Information Loss relative to Bayesian Observer",
-    xlabel = "Separation (μm)",
+    xlabel = "Range (μm)",
     ylabel = "Kullback-Liebler Divergence (bits)")
 
 
@@ -106,7 +106,7 @@ leg1a = Legend(fig1a, [pLine, iLine],
 fig1[1,1] = ax1a
 fig1[1,1] = leg1a
 
-ylims!(ax1a, -4, 2)
+ylims!(ax1a, -2, 0.25)
 
 
 
@@ -167,7 +167,7 @@ ax3 = Axis(fig3, #xticks = [25 50 100],
    # yticks = [0 0.25 0.5 0.75 1.0],
     title = "Range Credibility (0.05-0.5)",
     xlabel = "True Range (μm)",
-    ylabel = "Perception (μm)",
+    ylabel = "Perceived Range (μm)",
     xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200],
     yticks = [0, 25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300])
 
@@ -207,7 +207,7 @@ fig4 = Figure(resolution = (800,600))
 ax4 = Axis(fig4, #xticks = [25 50 100], 
    # yticks = [0 0.25 0.5 0.75 1.0],
     title = "Direction Credibility",
-    xlabel = "Separation (μm)",
+    xlabel = "Range (μm)",
     ylabel = "Bearing Error (degrees)",
     yticks = [-45, -5, 5, 45],
     xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200])
@@ -240,13 +240,13 @@ display(fig4);
 fig5 = Figure(resolution = (800,600))
 ax5 = Axis(fig5, #xticks = [25 50 100], 
    # yticks = [0 0.25 0.5 0.75 1.0],
-    title = "M-cell Activation",
-    xlabel = "Separation (μm)",
-    ylabel = "Probability",
+    title = "Threat Detection",
+    xlabel = "Range (μm)",
+    ylabel = "Probability of predator within critical range",
     xticks = [0, 25, 50, 75, 100, 125, 150, 175, 200])
 
 
-SC = 1.0
+SC = 2.0
 band!(Rgrid, MCPS[:, iQ25], MCPS[:, iQ75], color = (BayesBG, bandAlpha) )
 [ lines!(Rgrid, MCP[:, rand(1:Ncols)], color = BayesFG, linewidth = traceW) for _ in 1:Neg]
 BayesLine5=lines!(Rgrid, MCPS[:, iQ50], color = BayesFG, linewidth = thickLineW)
