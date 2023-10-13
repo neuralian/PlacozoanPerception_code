@@ -34,10 +34,12 @@
 
 using TickTock
 using Dates
-include("BayesianPlacozoan_v2-22.jl")
+using GLMakie
+
+include("BayesianPlacozoan_2023.jl")
 
 # wrap the script in a function so it compiles to (more) specialized (faster) code
-# function placozoanStalker()
+function placozoanStalker()
 
 videoScale = 1.75
 # Particle sizes  
@@ -58,7 +60,7 @@ n_posterior_particles = 1600 # 3200 # 12800
 posteriorDeathRate = .001
 
 # number of replicate simulations for each combination of the above parameters
-N_REPS = 11
+N_REPS = 1
 
 # show animation while simulating true/false
 # must be true if animation is to be recorded/saved.
@@ -69,7 +71,7 @@ SHOW_ANIMATION = true
 # log parameters and simulation statistics per trial true/false 
 
 
-LOG_DATA = false
+LOG_DATA = true
 
 
 
@@ -89,8 +91,8 @@ end
 
 
 # simulation parameters
-nFrames = 480    # number of animation frames
-burn_time = 30      # burn in posterior initially for 30 sec with predator outside observable world
+nFrames = 24 # 480    # number of animation frames
+burn_time = 10 # 30      # burn in posterior initially for 30 sec with predator outside observable world
 mat_radius = 400    # μm
 min_Δ = 20.0         # predator closest approach distance
 Δinit = 200.0
@@ -163,94 +165,6 @@ trialNumber = 0
 DataFileName = "PlacozoanStalkerV2.0 " * Dates.format(Dates.now(), "yyyy-mm-dd HH.MM")
 
 # open file to save results as dataframe, 1 row per simulation step (=per video frame)
-if LOG_DATA
-
-    CSV.write(DataFileName * ".csv",
-        DataFrame(rep=Int64[],
-
-            # trial parameters
-            n_likelihood_particles = Int64[], 
-            n_posterior_particles  = Int64[], 
-            n_vigilant_particles   = Float64[],
-        
-            # distance to closest edge of predator, and predator location
-            Range     = Float64[], 
-            predatorx = Float64[], 
-            predatory = Float64[], 
-            
-            # Bayesian MAP estimate of predator location
-            xMAP=Int64[], 
-            yMAP=Int64[], 
-
-            # Entropy of Bayesian posterior & Kullback-Leibler divergence (relative entropy)
-            #   of particle distribution (KLD), a uniform random sample (KLD0) and a sample 
-            # from the posterior density (KLDI, ie simulating an ideal Bayesian particle filter),
-            # with respect to the posterior (ie measure information loss in the particle estimate,
-            #   a sample from the posterior and a random sample, relative to the posterior)
-            PosteriorEntropy = Float64[], 
-            KLD              = Float64[], 
-            KLD0             = Float64[], 
-            KLDI             = Float64[],
-
-            ## posterior density summary stats ##
-
-            # posterior probability that predator is closer than 25, 50 and 100um
-            PR40 = Float64[], 
-            PR45 = Float64[], 
-            PR50 = Float64[], 
-
-            # quantiles of posterior density of distance to predator
-            # 1%, 5%, 25% and 50% (median) (proximal side only, ie we care about how close the predator
-            # might be, not how far away it might be)
-            QP01 = Float64[], 
-            QP05 = Float64[], 
-            QP25 = Float64[], 
-            QP50 = Float64[],
-
-            # quantiles of angular distribution
-            Qψ01 = Float64[], 
-            Qψ05 = Float64[], 
-            Qψ25 = Float64[], 
-            Qψ50 = Float64[], 
-            Qψ75 = Float64[], 
-            Qψ95 = Float64[], 
-            Qψ99 = Float64[],
-
-            # M-cell Bayesian posterior belief of predator in patch
-            MP = Float64[],
-
-            ## Particle summary stats  ##
-
-            # proportion of particles within 25, 50 and 100um
-            NR40 = Float64[], 
-            NR45 = Float64[], 
-            NR50 = Float64[], 
-
-            # quantiles of particle proximity, 1%, 5%, 25% and 50%
-            # e.g. QN05 is range including closest 5% of particles
-            QN01 = Float64[], 
-            QN05 = Float64[], 
-            QN25 = Float64[], 
-            QN50 = Float64[], 
-
-            # quantiles of particle direction error (from true heading to predator)
-            # giving credibility intervals for direction
-            # e.g. QΘ05 is left/anticlockwise limit of 5% credibility interval for direction to predator,
-            #      and Q095 is right/clockwise limit
-            QΘ01 = Float64[], 
-            QΘ05 = Float64[], 
-            QΘ25 = Float64[], 
-            QΘ50 = Float64[], 
-            QΘ75 = Float64[], 
-            QΘ95 = Float64[], 
-            QΘ99 = Float64[],
-
-            # M-cell particle posterior belief of predator in patch
-            MN = Float64[],
-            
- ))
-
-end # if DO_LOG_DATA
 
 
 # SIMULATION LOOP STARTS HERE
@@ -295,8 +209,6 @@ for rep = 1:N_REPS
     initializePosteriorPDF(prey)       #  prior density on grid, copied to initial posterior 
     initializePosteriorParticles(prey) # initial posterior particles are sample from prior
 
-     break
-
     # burn in posterior
     # from uniform to posterior given no predator in the observable world for burn-in time
     for i in 1:burn_time
@@ -317,7 +229,7 @@ for rep = 1:N_REPS
     # initialize particle filter
     #     initialize_particles(prey) # draw initial sample from prior
 
-   if SHOW_ANIMATION
+   #if SHOW_ANIMATION
 
         # if !PLOT_ARRAYS    # not plotting likelihoods or posterior
         #     scene, layout = layoutscene(resolution=(WorldSize, WorldSize))
@@ -501,7 +413,7 @@ for rep = 1:N_REPS
 
     display(scene)
 
-end #SHOW_ANIMATION
+#end #SHOW_ANIMATION
 
     videoFileName = DataFileName * "_" * string(rep) * ".mp4"
 
@@ -509,8 +421,8 @@ end #SHOW_ANIMATION
     # comment out ONE of the following 2 lines to generate video file or not
     # NB animation can be displayed while simulating, by setting SHOW_ANIMATION = true, without saving as video file,
     # SHOW_ANIMATION must be true for video to be recorded.
-    #record(scene, videoFileName , 1:nFrames; framerate=30 ) do i     # simulate and write video file
-    for i in 1:nFrames                                         # simulate without writing video file
+    record(scene, videoFileName , 1:nFrames; framerate=30 ) do i     # simulate and write video file
+    # for i in 1:nFrames                                         # simulate without writing video file
 
 
         # predator takes a stochastic step toward prey
@@ -546,7 +458,7 @@ end #SHOW_ANIMATION
 
         bayesArrayUpdate(prey)      # numerical sequential Bayes (benchmark)
 
-        if SHOW_ANIMATION
+       # if SHOW_ANIMATION
 
             receptorColor = [prey.receptor.closedColor for j = 1:prey.receptor.N]
             receptorColor[findall(x -> x == 1, prey.receptor.state)] .= prey.receptor.openColor
@@ -578,11 +490,11 @@ end #SHOW_ANIMATION
             idealParticlePlot[1] = rejectSample(prey, n_posterior_particles).+Point2f(400.,400.) # sample from true posterior
 
 
-        else
+    #    else
             # show progress in terminal
             # (so you know it's running even if SHOW_ANIMATION is false)
             print(".")
-        end # SHOW_ANIMATION
+     #   end # SHOW_ANIMATION
 
         # record posterior entropy 
         prey.observer.PosteriorEntropy[i] = entropy(prey.observer.posterior)
@@ -594,53 +506,10 @@ end #SHOW_ANIMATION
         KLD!(prey, i)
 
         t[] = i  # update observable, causes redraw 
-        notify(t)
-
-        if LOG_DATA
-
-            # MAP predator location            
-            iMAP =  MAPlocation(prey)
-            #scatter!(iMAP.+400, color = :blue)
-            # println(iMAP[1], ", ", iMAP[2])
-
-            # summary stats of particle distribution
-            # NR = proportion of particles (estimated probabilty) that predator is closer than 25,50 & 100um
-            # QN = quantiles of particle range, [0.005 0.025 0.25 0.5 0.75 0.975 0.995]
-            #      giving 1%, 5% and 50% credibility intervals + median estimate
-            # QΘ = quantiles of particle angle deviation from heading to predator (as above)
-            # MN = M-cell's posterior belief that there is a predator in its patch 
-            (NR, QN, Qθ, MN) = particleStats(prey, predator) 
-
-            # corresponding stats for Bayesian observer
-            (PR, QP, Qψ, MP) = observerStats(prey, predator) 
-
-            # debug
-            # println(QD, ", ", Dmin, ", ", Qθ, ", ", θmin, ", ", θmax)
-            # sleep(2)
-
-            # save data (see file open command for more detailed description of variables saved)
-            CSV.write(DataFileName * ".csv",
-                DataFrame(hcat(rep, 
-                
-                # trial parameters
-                n_likelihood_particles, 
-                n_posterior_particles,  posteriorDeathRate,
-                                        # range and location 
-                prey.observer.Δ[i], predator.position[][1], predator.position[][2], iMAP[1], iMAP[2],
-
-                # entropy/information in particle filter
-                prey.observer.PosteriorEntropy[i], prey.observer.KLD[i], prey.observer.KLD0[i], prey.observer.KLDI[i], 
-                
-                # summary stats of posterior probability 
-                PR..., QP, Qψ, MP, 
-
-                # summary stats of particle distribution
-                NR..., QN..., Qθ..., MN), 
-                
-                :auto), header=false, append=true)
-
-            end # if LOG_DATA   
-
+        # notify(t)
+ 
+        display(scene)
+        save("hello.png", scene)
         end # frame
 
         # print timing information to terminal
@@ -651,11 +520,11 @@ end #SHOW_ANIMATION
 
    end # for rep
 
-# end # placozoanStalker function
+end # placozoanStalker function
 
 
 # # run it
-# placozoanStalker()
+placozoanStalker()
 
 
 
